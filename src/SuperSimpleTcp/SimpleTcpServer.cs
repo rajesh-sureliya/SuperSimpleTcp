@@ -311,6 +311,64 @@ namespace SuperSimpleTcp
             } 
         }
 
+        /// <summary>
+        /// Instantiates the TCP server.  Set the ClientConnected, ClientDisconnected, and DataReceived callbacks.  Once set, use Start() to begin listening for connections.
+        /// </summary>
+        /// <param name="listenerIp">The listener IP address or hostname.</param>
+        /// <param name="port">The TCP port on which to listen.</param>
+        /// <param name="ssl">Enable or disable SSL.</param>
+        /// <param name="pfxCertRawData">The filename'sraw data of the PFX certificate file.</param>
+        /// <param name="pfxPassword">The password to the PFX certificate file.</param>
+        public SimpleTcpServer(string listenerIp, int port, bool ssl, byte[] pfxCertRawData, string pfxPassword)
+        {
+            if (port < 0) throw new ArgumentException("Port must be zero or greater.");
+
+            _listenerIp = listenerIp;
+            _port = port;
+
+            if (string.IsNullOrEmpty(_listenerIp))
+            {
+                _ipAddress = IPAddress.Loopback;
+                _listenerIp = _ipAddress.ToString();
+            }
+            else if (_listenerIp == "*" || _listenerIp == "+")
+            {
+                _ipAddress = IPAddress.Any;
+            }
+            else
+            {
+                if (!IPAddress.TryParse(_listenerIp, out _ipAddress))
+                {
+                    _ipAddress = Dns.GetHostEntry(listenerIp).AddressList[0];
+                    _listenerIp = _ipAddress.ToString();
+                }
+            }
+
+            _ssl = ssl;
+            _isListening = false;
+            _token = _tokenSource.Token;
+
+            if (_ssl)
+            {
+
+                if (string.IsNullOrEmpty(pfxPassword))
+                {
+                    _sslCertificate = new X509Certificate2(pfxCertRawData);
+                }
+                else
+                {
+                    _sslCertificate = new X509Certificate2(pfxCertRawData, pfxPassword);
+                }
+
+                _sslCertificateCollection = new X509Certificate2Collection
+                {
+                    _sslCertificate
+                };
+            }
+        }
+
+
+
         #endregion
 
         #region Public-Methods

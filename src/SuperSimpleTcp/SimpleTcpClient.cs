@@ -161,6 +161,9 @@ namespace SuperSimpleTcp
         private DateTime _lastActivity = DateTime.Now;
         private bool _isTimeout = false;
 
+        private bool isSslCertRawData = false;
+        private byte[] sslCertRawData = null;
+
         #endregion
 
         #region Constructors-and-Factories
@@ -230,6 +233,23 @@ namespace SuperSimpleTcp
         {
             _ssl = ssl;
             _pfxCertFilename = pfxCertFilename;
+            _pfxPassword = pfxPassword;
+        }
+
+        /// <summary>
+        /// Instantiates the TCP client.  Set the Connected, Disconnected, and DataReceived callbacks.  Once set, use Connect() to connect to the server.
+        /// </summary>
+        /// <param name="serverIpOrHostname">The server IP address or hostname.</param>
+        /// <param name="port">The TCP port on which to connect.</param>
+        /// <param name="ssl">Enable or disable SSL.</param>
+        /// <param name="pfxCertFilename">The filename of the PFX certificate file.</param>
+        /// <param name="pfxPassword">The password to the PFX certificate file.</param>
+        public SimpleTcpClient(string serverIpOrHostname, int port, bool ssl, byte[] pfxCertRawData, string pfxPassword) : this(serverIpOrHostname, port)
+        {
+            _ssl = ssl;
+            //_pfxCertFilename = pfxCertFilename;
+            isSslCertRawData = true;
+            sslCertRawData = pfxCertRawData;
             _pfxPassword = pfxPassword;
         }
 
@@ -690,15 +710,22 @@ namespace SuperSimpleTcp
 
             if (_ssl)
             {
-                if (string.IsNullOrEmpty(pfxPassword))
+                if(!isSslCertRawData)
                 {
-                    _sslCert = new X509Certificate2(pfxCertFilename);
+                    if (string.IsNullOrEmpty(pfxPassword))
+                    {
+                        _sslCert = new X509Certificate2(pfxCertFilename);
+                    }
+                    else
+                    {
+                        _sslCert = new X509Certificate2(pfxCertFilename, pfxPassword);
+                    }
                 }
                 else
                 {
-                    _sslCert = new X509Certificate2(pfxCertFilename, pfxPassword);
+                    _sslCert = new X509Certificate2(sslCertRawData, pfxPassword);
                 }
-
+ 
                 _sslCertCollection = new X509Certificate2Collection
                 {
                     _sslCert
